@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interactive Web Development Quiz</title>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<style>
+:root {
+    --primary: #635bff;
+    --background: #f3f5fb;
+    --card: #ffffff;
+    --text: #20243a;
+    --muted: #747b91;
+    --border: #e1e5ef;
+    --green: #168754;
+    --red: #d93848;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 25px 14px;
+    font-family: Arial, sans-serif;
+    color: var(--text);
+    background:
+        radial-gradient(circle at top left, #e5e5ff, transparent 40%),
+        var(--background);
+}
+
+button { font: inherit; cursor: pointer; }
+
+button:focus-visible {
+    outline: 3px solid #ffbf47;
+    outline-offset: 3px;
+}
+
+.app {
+    max-width: 780px;
+    margin: 20px auto;
+}
+
+.brand {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.brand h1 {
+    font-size: clamp(25px, 5vw, 36px);
+    margin-bottom: 8px;
+}
+
+.brand p, .muted { color: var(--muted); }
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: clamp(20px, 5vw, 35px);
+    box-shadow: 0 12px 40px #28345b12;
+}
+
+.hidden { display: none !important; }
+
+.badge {
+    display: inline-block;
+    padding: 8px 12px;
+    background: #efedff;
+    color: #5145d9;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.start-title {
+    font-size: 25px;
+    margin-top: 20px;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 25px 0;
+}
+
+.feature {
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fafaff;
+}
+
+.feature strong { display: block; margin-bottom: 6px; }
+.feature span { color: var(--muted); font-size: 13px; }
+
+.primary, .secondary {
+    padding: 13px 18px;
+    border: 0;
+    border-radius: 9px;
+    font-weight: bold;
+}
+
+.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.primary:hover { background: #4c43df; }
+
+.secondary {
+    background: #eceef6;
+    color: #343950;
+}
+
+.full { width: 100%; }
+
+.quiz-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.timer {
+    font-weight: bold;
+    color: var(--primary);
+    background: #efedff;
+    padding: 9px 12px;
+    border-radius: 9px;
+}
+
+.timer.urgent {
+    background: #ffe6e9;
+    color: var(--red);
+}
+
+.progress-track {
+    height: 9px;
+    background: #e9ebf3;
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 22px 0;
+}
+
+#progressBar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #635bff, #9c73ff);
+    transition: width .35s ease;
+}
+
+.question-title {
+    font-size: clamp(20px, 4vw, 27px);
+    line-height: 1.4;
+    margin: 22px 0;
+}
+
+.options {
+    display: grid;
+    gap: 12px;
+}
+
+.option {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    text-align: left;
+    padding: 15px;
+    border: 2px solid var(--border);
+    background: white;
+    color: var(--text);
+    border-radius: 11px;
+    transition: border-color .2s, background .2s;
+}
+
+.option:hover:not(:disabled) {
+    border-color: var(--primary);
+    background: #f7f6ff;
+}
+
+.option .letter {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    background: #f0f1f8;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.option.correct {
+    border-color: var(--green);
+    background: #eaf8f0;
+}
+
+.option.wrong {
+    border-color: var(--red);
+    background: #fff0f1;
+}
+
+.option:disabled { cursor: default; opacity: 1; }
+
+#feedback {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 10px;
+    line-height: 1.5;
+}
+
+#feedback.good {
+    background: #eaf8f0;
+    color: #126b3d;
+}
+
+#feedback.bad {
+    background: #fff0f1;
+    color: #a31e2b;
+}
+
+#feedback.neutral {
+    background: #f0efff;
+    color: #443ba9;
+}
+
+.quiz-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 22px;
+}
+
+#hintBtn {
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    padding: 10px 0;
+    font-weight: bold;
+}
+
+#hintText {
+    background: #fff7db;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 12px;
+    line-height: 1.5;
+}
+
+.result-header { text-align: center; }
+
+.score-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    display: grid;
+    place-content: center;
+    margin: 25px auto;
+    background: #efedff;
+    border: 9px solid #d7d2ff;
+}
+
+.score-circle strong { font-size: 35px; }
+.score-circle span { color: var(--muted); font-size: 13px; }
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 25px 0;
+}
+
+.result-stat {
+    background: #f7f8fc;
+    padding: 16px 8px;
+    text-align: center;
+    border-radius: 10px;
+}
+
+.result-stat strong {
+    display: block;
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.result-stat span { color: var(--muted); font-size: 12px; }
+
+.review-item {
+    border-top: 1px solid var(--border);
+    padding: 16px 0;
+    line-height: 1.5;
+}
+
+.review-item p { margin-bottom: 6px; }
+
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.actions button { flex: 1; }
+
+@media (max-width: 500px) {
+    .feature-grid { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: 1fr; }
+    .result-stat { display: flex; justify-content: space-between; }
+    .quiz-bottom > button { width: 100%; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+    <header class="brand">
+        <h1>CodeQuest</h1>
+        <p>Learn. Think. Code. Level up.</p>
+    </header>
+
+    <!-- Start screen -->
+    <section id="startScreen" class="card">
+        <span class="badge">WEB DEVELOPMENT CHALLENGE</span>
+        <h2 class="start-title">Ready to test your skills?</h2>
+        <p class="muted">
+            Answer the questions, build your streak, and review your
+            performance at the end.
+        </p>
+
+        <div class="feature-grid">
+            <div class="feature">
+                <strong>⏱ Timed challenge</strong>
+                <span>15 seconds per question</span>
+            </div>
+            <div class="feature">
+                <strong>⭐ Score points</strong>
+                <span>Earn points for correct answers</span>
+            </div>
+            <div class="feature">
+                <strong>🔥 Answer streaks</strong>
+                <span>Build consecutive correct answers</span>
+            </div>
+            <div class="feature">
+                <strong>💡 Smart hints</strong>
+                <span>Get a clue with a small penalty</span>
+            </div>
+        </div>
+
+        <button id="startBtn" class="primary full">Start Quiz →</button>
+    </section>
+
+    <!-- Quiz screen -->
+    <section id="quizScreen" class="card hidden">
+
+        <div class="quiz-top">
+            <span class="badge" id="questionCounter">Question 1 of 8</span>
+            <span class="timer" id="timer" aria-live="off">⏱ 15s</span>
+            <span class="badge">⭐ <span id="scoreValue">0</span> points</span>
+        </div>
+
+        <div class="progress-track">
+            <div id="progressBar"></div>
+        </div>
+
+        <p class="muted" id="streakText">🔥 Streak: 0</p>
+        <h2 id="questionText" class="question-title"></h2>
+
+        <div id="options" class="options"></div>
+
+        <div id="feedback" class="hidden" aria-live="polite"></div>
+
+        <div id="hintText" class="hidden"></div>
+
+        <div class="quiz-bottom">
+            <button id="hintBtn">💡 Show Hint (-5 points)</button>
+            <button id="nextBtn" class="primary" disabled>
+                Next Question →
+            </button>
+        </div>
+    </section>
+
+    <!-- Result screen -->
+    <section id="resultScreen" class="card hidden">
+        <div class="result-header">
+            <span class="badge">CHALLENGE COMPLETED</span>
+            <h2 id="resultTitle">Well done!</h2>
+
+            <div class="score-circle">
+                <strong id="finalPercent">0%</strong>
+                <span>Accuracy</span>
+            </div>
+
+            <p id="resultMessage"></p>
+        </div>
+
+        <div class="result-grid">
+            <div class="result-stat">
+                <strong id="finalScore">0</strong>
+                <span>Total points</span>
+            </div>
+            <div class="result-stat">
+                <strong id="correctCount">0/8</strong>
+                <span>Correct answers</span>
+            </div>
+            <div class="result-stat">
+                <strong id="bestStreak">0</strong>
+                <span>Best streak</span>
+            </div>
+        </div>
+
+        <h3>Answer Review</h3>
+        <div id="reviewList"></div>
+
+        <div class="actions">
+            <button id="restartBtn" class="primary">↻ Play Again</button>
+            <button id="reviewBtn" class="secondary">Review Answers</button>
+        </div>
+    </section>
+
+</div>
+
+<script>
+$(document).ready(function () {
+
+    const questions = [
+        {
+            question: "Which HTML element creates a hyperlink?",
+            options: ["<link>", "<a>", "<href>", "<url>"],
+            answer: 1,
+            hint: "It is commonly called the anchor element.",
+            explanation: "The anchor element uses the href attribute to link to another page or resource."
+        },
+        {
+            question: "Which CSS property adds space inside an element's border?",
+            options: ["margin", "spacing", "padding", "outline"],
+            answer: 2,
+            hint: "Think about the space between the content and the border.",
+            explanation: "Padding creates internal space around an element's content."
+        },
+        {
+            question: "Which jQuery selector targets an element with id='menu'?",
+            options: ["$('.menu')", "$('menu')", "$('#menu')", "$('*menu')"],
+            answer: 2,
+            hint: "An ID selector uses a symbol also used for fragment identifiers in URLs.",
+            explanation: "The # symbol selects an element by its ID."
+        },
+        {
+            question: "Which jQuery method attaches an event handler?",
+            options: [".listen()", ".on()", ".event()", ".attach()"],
+            answer: 1,
+            hint: "This method can handle click, input, submit, and many other events.",
+            explanation: "The .on() method attaches event handlers to selected elements."
+        },
+        {
+            question: "Which JavaScript keyword declares a block-scoped variable that can be reassigned?",
+            options: ["const", "fixed", "let", "static"],
+            answer: 2,
+            hint: "It is useful for values that change during a loop or calculation.",
+            explanation: "let declares a block-scoped variable that can be reassigned."
+        },
+        {
+            question: "What does event.preventDefault() do in a form submit handler?",
+            options: [
+                "Deletes the form",
+                "Prevents the browser's default action",
+                "Validates every input automatically",
+                "Clears all input values"
+            ],
+            answer: 1,
+            hint: "Consider what normally happens when a browser submits a form.",
+            explanation: "It prevents the browser's default action, such as the usual form submission navigation."
+        },
+        {
+            question: "Which CSS layout system is designed for arranging items in rows or columns?",
+            options: ["Flexbox", "Text shadow", "Border radius", "Font family"],
+            answer: 0,
+            hint: "It is frequently used to align navigation items and distribute space.",
+            explanation: "Flexbox is a one-dimensional layout system for arranging items along a row or column."
+        },
+        {
+            question: "Which jQuery method removes an element from the DOM?",
+            options: [".empty()", ".hide()", ".remove()", ".fadeOut()"],
+            answer: 2,
+            hint: "Choose the method that removes the selected element itself, not just its contents or visibility.",
+            explanation: ".remove() removes the selected element and its associated jQuery data and events."
+        }
+    ];
+
+    const QUESTION_TIME = 15;
+
+    let current = 0;
+    let score = 0;
+    let streak = 0;
+    let bestStreak = 0;
+    let timeLeft = QUESTION_TIME;
+    let timerId = null;
+    let locked = false;
+    let hintUsed = false;
+    let reviewData = [];
+
+    function stopTimer() {
+        clearInterval(timerId);
+        timerId = null;
+    }
+
+    function showScreen(screenId) {
+        $("#startScreen, #quizScreen, #resultScreen").addClass("hidden");
+        $("#" + screenId).removeClass("hidden");
+    }
+
+    function updateScore() {
+        $("#scoreValue").text(score);
+        $("#streakText").text("🔥 Streak: " + streak);
+    }
+
+    function startTimer() {
+        stopTimer();
+
+        timeLeft = QUESTION_TIME;
+        updateTimer();
+
+        timerId = setInterval(function () {
+            timeLeft--;
+            updateTimer();
+
+            if (timeLeft <= 0) {
+                stopTimer();
+                handleTimeout();
+            }
+        }, 1000);
+    }
+
+    function updateTimer() {
+        $("#timer")
+            .text("⏱ " + timeLeft + "s")
+            .toggleClass("urgent", timeLeft <= 5);
+    }
+
+    function loadQuestion() {
+        locked = false;
+        hintUsed = false;
+
+        $("#feedback, #hintText").addClass("hidden").empty();
+        $("#hintBtn").prop("disabled", false).show();
+        $("#nextBtn").prop("disabled", true);
+
+        let q = questions[current];
+
+        $("#questionCounter").text(
+            "Question " + (current + 1) + " of " + questions.length
+        );
+
+        $("#progressBar").css(
+            "width",
+            (current / questions.length * 100) + "%"
+        );
+
+        $("#questionText").text(q.question);
+        $("#options").empty();
+
+        q.options.forEach(function (option, index) {
+            let button = $("<button>")
+                .addClass("option")
+                .attr("type", "button")
+                .append(
+                    $("<span>").addClass("letter")
+                        .text(String.fromCharCode(65 + index))
+                )
+                .append($("<span>").text(option))
+                .on("click", function () {
+                    selectAnswer(index, button);
+                });
+
+            $("#options").append(button);
+        });
+
+        startTimer();
+    }
+
+    function selectAnswer(selected, selectedButton) {
+        if (locked) return;
+
+        locked = true;
+        stopTimer();
+
+        let q = questions[current];
+        let isCorrect = selected === q.answer;
+        let pointsEarned = 0;
+
+        if (isCorrect) {
+            pointsEarned = 10;
+
+            // Faster answers earn up to 5 bonus points.
+            pointsEarned += Math.floor(timeLeft / 3);
+
+            // Hints reduce the reward for this question.
+            if (hintUsed) pointsEarned = Math.max(1, pointsEarned - 5);
+
+            score += pointsEarned;
+            streak++;
+            bestStreak = Math.max(bestStreak, streak);
+
+            selectedButton.addClass("correct");
+
+            $("#feedback")
+                .removeClass("bad neutral")
+                .addClass("good")
+                .text("Correct! +" + pointsEarned + " points. " + q.explanation);
+        } else {
+            streak = 0;
+
+            selectedButton.addClass("wrong");
+            $("#options .option").eq(q.answer).addClass("correct");
+
+            $("#feedback")
+                .removeClass("good neutral")
+                .addClass("bad")
+                .text("Not quite. " + q.explanation);
+        }
+
+        $("#options .option").prop("disabled", true);
+
+        reviewData[current] = {
+            selected: selected,
+            correct: q.answer,
+            timedOut: false,
+            points: pointsEarned
+        };
+
+        $("#feedback").removeClass("hidden");
+        $("#hintBtn").hide();
+        $("#nextBtn").prop("disabled", false);
+
+        updateScore();
+    }
+
+    function handleTimeout() {
+        if (locked) return;
+
+        locked = true;
+        streak = 0;
+
+        let q = questions[current];
+
+        $("#options .option").prop("disabled", true);
+        $("#options .option").eq(q.answer).addClass("correct");
+
+        $("#feedback")
+            .removeClass("good neutral")
+            .addClass("bad")
+            .text("Time's up! " + q.explanation)
+            .removeClass("hidden");
+
+        reviewData[current] = {
+            selected: -1,
+            correct: q.answer,
+            timedOut: true,
+            points: 0
+        };
+
+        $("#hintBtn").hide();
+        $("#nextBtn").prop("disabled", false);
+
+        updateScore();
+    }
+
+    $("#hintBtn").on("click", function () {
+        if (locked || hintUsed) return;
+
+        hintUsed = true;
+        score = Math.max(0, score - 5);
+
+        $("#hintText")
+            .text("💡 Hint: " + questions[current].hint)
+            .removeClass("hidden");
+
+        $(this).prop("disabled", true);
+        updateScore();
+    });
+
+    $("#nextBtn").on("click", function () {
+        if (!locked) return;
+
+        current++;
+
+        if (current < questions.length) {
+            loadQuestion();
+        } else {
+            showResults();
+        }
+    });
+
+    function showResults() {
+        stopTimer();
+        showScreen("resultScreen");
+
+        let correct = reviewData.filter(function (item) {
+            return item && item.selected === item.correct;
+        }).length;
+
+        let accuracy = Math.round(correct / questions.length * 100);
+
+        $("#progressBar").css("width", "100%");
+        $("#finalPercent").text(accuracy + "%");
+        $("#finalScore").text(score);
+        $("#correctCount").text(correct + "/" + questions.length);
+        $("#bestStreak").text(bestStreak);
+
+        let rating = accuracy >= 90 ? "Outstanding!"
+            : accuracy >= 70 ? "Great job!"
+            : accuracy >= 50 ? "Good effort!"
+            : "Keep practising!";
+
+        $("#resultTitle").text(rating);
+        $("#resultMessage").text(
+            "You answered " + correct + " out of " +
+            questions.length + " questions correctly."
+        );
+
+        $("#reviewList").empty();
+
+        questions.forEach(function (q, index) {
+            let result = reviewData[index];
+
+            let selectedText = result.selected === -1
+                ? "Not answered (time expired)"
+                : q.options[result.selected];
+
+            let item = $("<div>").addClass("review-item");
+
+            item.append($("<strong>").text(
+                (index + 1) + ". " + q.question
+            ));
+
+            item.append($("<p>").text("Your answer: " + selectedText));
+            item.append($("<p>").text("Correct answer: " + q.options[q.answer]));
+            item.append($("<p>").addClass("muted").text(q.explanation));
+
+            $("#reviewList").append(item);
+        });
+
+        $("#reviewList").addClass("hidden");
+        $("#reviewBtn").text("Review Answers");
+    }
+
+    $("#reviewBtn").on("click", function () {
+        $("#reviewList").toggleClass("hidden");
+
+        $(this).text(
+            $("#reviewList").hasClass("hidden")
+                ? "Review Answers"
+                : "Hide Answer Review"
+        );
+    });
+
+    function restartQuiz() {
+        stopTimer();
+
+        current = 0;
+        score = 0;
+        streak = 0;
+        bestStreak = 0;
+        timeLeft = QUESTION_TIME;
+        locked = false;
+        hintUsed = false;
+        reviewData = [];
+
+        updateScore();
+        showScreen("startScreen");
+    }
+
+    $("#startBtn").on("click", function () {
+        current = 0;
+        score = 0;
+        streak = 0;
+        bestStreak = 0;
+        reviewData = [];
+
+        updateScore();
+        showScreen("quizScreen");
+        loadQuestion();
+    });
+
+    $("#restartBtn").on("click", restartQuiz);
+
+});
+</script>
+</body>
+</html>
